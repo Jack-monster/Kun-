@@ -8,7 +8,7 @@ class Kunkun:
         self.screen_rect=aigame.screen.get_rect()
 
         #加载飞船
-        self.image=pygame.image.load('img/ji1.bmp')
+        self.image=pygame.image.load("C:\\Users\\86182\\Desktop\\python_work\\alien_invation_game\\img\\ji1.bmp")
         self.rect=self.image.get_rect()
 
         self.rect.midbottom=self.screen_rect.midbottom

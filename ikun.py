@@ -1,44 +1,89 @@
 import pygame
+from ball import Ball
+from utils import *
 
-class Kunkun:
+vector2 = pygame.math.Vector2
+class Kunkun(pygame.sprite.Sprite):
     """管理坤坤的类"""
     def __init__(self,aigame):
+        pygame.sprite.Sprite.__init__(self)
         """初始化坤坤并管理其位置"""
+        self.game=aigame
         self.screen=aigame.screen
         self.screen_rect=aigame.screen.get_rect()
         self.settings=aigame.settings
-
+        
         #加载坤坤
-        self.image=pygame.image.load("C:\\Users\\86182\\Desktop\\python_work\\alien_invation_game\\img\\ji1.bmp")
+        self.images = []
+        self.imageIndex = 0
+        for path in self.settings.PLAYER_RES:
+            img = pygame.image.load(path)
+            img = pygame.transform.scale(img, (self.settings.PLAYER_SIZE_W, self.settings.PLAYER_SIZE_H))
+            self.images.append( img )
+        self.image = self.images[self.imageIndex]
         self.rect=self.image.get_rect()
 
-        #初始化位置
-        self.rect.midbottom=self.screen_rect.midbottom
+        self.preChangeTime = getCurrentTime()
 
-        #位置属性
-        self.x=float(self.rect.x)
-        self.y=float(self.rect.y)
+        #速度
+        self.pos = vector2(self.settings.screen_width/2,self.settings.screen_height*3/4)
+        self.vel = vector2(0,0)
+        self.acc = vector2(0.0)
+        self.button_vel = True
+        
+        self.jiSound = pygame.mixer.Sound(self.settings.Ji_snd)
+        self.ngmSound = pygame.mixer.Sound(self.settings.niganma_snd)
+        self.meiSound = pygame.mixer.Sound(self.settings.mei_snd)
+        self.niSound = pygame.mixer.Sound(self.settings.ni_snd)
 
-        #移动属性
-        self.moving_right = False
-        self.moving_left = False
-        self.moving_up = False
-        self.moving_down = False
+    def fire_ball(self):
+        self.jiSound.play()
+        ball = Ball(self.game)
+        self.game.balls.add(ball)
+        self.game.all_sprites.add(ball)
 
-    def blitme(self):
-        """绘制坤"""
-        self.screen.blit(self.image,self.rect)
+    def jump(self):
+        self.rect.y += 4
+        hit = pygame.sprite.spritecollide(self,self.game.platforms,False)
+        self.rect.y -= 4
+        if hit:
+            self.vel.y -= 15
 
     def update(self):
         """更新坤的状态"""
-        if self.moving_right and self.rect.right < self.screen_rect.right:
-            self.x +=self.settings.kunkun_speed_x
-        if self.moving_left and self.rect.left > 0:
-            self.x -=self.settings.kunkun_speed_x
-        self.rect.x=self.x
+        self.image = self.images[self.imageIndex]
 
-        if self.moving_down and self.rect.bottom < self.screen_rect.bottom:
-            self.y +=self.settings.kunkun_speed_y
-        if self.moving_up and self.rect.top > self.screen_rect.top:
-            self.y -=self.settings.kunkun_speed_y
-        self.rect.y=self.y
+        if self.game.kun_ontheground:
+            self.acc = vector2(0,0)
+        else:
+            self.acc = vector2(0,0.5)
+        
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_LEFT]:
+            self.acc.x = -self.settings.kun_acc
+        if keys[pygame.K_RIGHT]:
+            self.acc.x = self.settings.kun_acc
+
+        if getCurrentTime() - self.preChangeTime > 200:
+            self.preChangeTime = getCurrentTime()
+            self.imageIndex = (self.imageIndex + 1) % len(self.images)
+
+        self.acc.x += self.vel.x * self.settings.kun_friction
+        
+        self.vel += self.acc
+
+        self.pos += self.vel + 0.5 * self.acc
+        self.rect.midbottom= self.pos
+
+        if self.rect.top > self.screen_rect.bottom:
+            self.ngmSound.play()
+            self.kill()
+            for mob in self.game.mobs:
+                mob.kill()
+            self.game.playing = False
+
+        
+        
+        
+        
+        
